@@ -62,6 +62,33 @@ An institutional-grade benchmark design framework and evaluation engine for test
 
 ---
 
+## 🤖 Automated Agent Evaluation via 9Router
+
+Run live benchmark evaluations against LLMs and autonomous coding agents (e.g. Gemini 3.7 Flash Low via local 9Router):
+
+```bash
+# Run automated benchmark evaluation on Gemini 3.7 Flash
+bun run scripts/gemini_benchmark_demo.ts
+```
+
+```
+⚡ Connecting to 9Router (:20128) with model: ag/gemini-3.7-flash-low...
+
+▶ Evaluating Task: [NET-PERF-108] Zero-Copy TCP Buffer Pool & Flow Control Optimizer
+  Domain: systems_networking | Workflow: performance_optimization
+
+⏱ Agent Response Time: 5633ms
+📝 Generated Patch Sample: Ring buffer pooling with zero heap drift
+
+─────────────────────────────────────────────────────────────────────────────
+✔ GATE AUDIT RESULT: PASSED
+  Composite Score: 0.988/1.00
+  ├─ ✔ [heap_allocation_zero_delta] Heap Allocation Zero-Delta Check: score 0.98
+  ├─ ✔ [deterministic_test] Packet Reorder & Fragment Fuzz Harness: score 1.00
+```
+
+---
+
 ## 🧪 Local Testing & Verification
 
 ```bash
