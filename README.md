@@ -7,6 +7,12 @@ An institutional-grade benchmark design framework and evaluation engine for test
 
 ---
 
+## 📸 Live Benchmark Execution & Verification Output
+
+![AI SWE Benchmark Harness Execution & Verification Engine](assets/benchmark-execution-preview.png)
+
+---
+
 ## 🏛️ Architecture & Evaluation Framework
 
 ```

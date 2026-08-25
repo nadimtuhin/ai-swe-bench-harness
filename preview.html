@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AI Benchmark CLI & Dashboard Preview</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background: #090d16;
+      color: #f3f4f6;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      margin: 0;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      width: 1100px;
+      box-sizing: border-box;
+    }
+    .panel {
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #1f2937;
+      padding-bottom: 16px;
+    }
+    .title {
+      font-size: 20px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+    .badge-live {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid #059669;
+    }
+    .terminal-box {
+      background: #030712;
+      border: 1px solid #1f2937;
+      border-radius: 8px;
+      padding: 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .t-blue { color: #60a5fa; }
+    .t-green { color: #34d399; }
+    .t-yellow { color: #fbbf24; }
+    .t-red { color: #f87171; }
+    .t-dim { color: #6b7280; }
+    .t-bold { font-weight: 700; }
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+    }
+    .stat-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 24px;
+      font-weight: 800;
+      color: #38bdf8;
+    }
+    .stat-lbl {
+      font-size: 11px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="panel">
+    <div class="header">
+      <div class="title">⚡ AI Benchmark Execution & Verification Engine</div>
+      <span class="badge badge-live">Deterministic Oracle v1.0.0</span>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-val" style="color: #34d399;">100%</div>
+        <div class="stat-lbl">Gate Reproducibility</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val">4 / 4</div>
+        <div class="stat-lbl">Systems Domains</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" style="color: #a78bfa;">6 Types</div>
+        <div class="stat-lbl">Workflow Coverage</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" style="color: #38bdf8;">0.97</div>
+        <div class="stat-lbl">Composite Benchmark Score</div>
+      </div>
+    </div>
+
+    <div class="terminal-box">
+      <div><span class="t-dim">$</span> <span class="t-blue">bun run bench --suite=systems-swe-v1 --model=autonomous-agent-01</span></div>
+      <div class="t-dim">─────────────────────────────────────────────────────────────────────────────</div>
+      <div><span class="t-bold t-blue">[EVAL]</span> Initializing 6-Workflow Benchmark Suite across 4 Systems Domains...</div>
+      <br>
+      <div><span class="t-yellow">▶ TASK 1/2:</span> <span class="t-bold">DB-MIGRATE-042</span> (Zero-Downtime Concurrent Partitioning Migration)</div>
+      <div>  <span class="t-dim">├─ Domain:</span> Database & Storage Systems | <span class="t-dim">Workflow:</span> Migration (Senior)</div>
+      <div>  <span class="t-dim">├─ Gate 1:</span> <span class="t-green">✔ PASS</span> Forward/Backward Schema Invariance Integrity <span class="t-dim">[1.00 score, 14ms]</span></div>
+      <div>  <span class="t-dim">└─ Gate 2:</span> <span class="t-green">✔ PASS</span> Lock Contention Duration &lt; 50ms Under Write Load <span class="t-dim">[0.96 score, 82ms]</span></div>
+      <br>
+      <div><span class="t-yellow">▶ TASK 2/2:</span> <span class="t-bold">NET-PERF-108</span> (Zero-Copy TCP Buffer Pool & Flow Control Optimizer)</div>
+      <div>  <span class="t-dim">├─ Domain:</span> Systems & Networking | <span class="t-dim">Workflow:</span> Performance Optimization (Principal)</div>
+      <div>  <span class="t-dim">├─ Gate 1:</span> <span class="t-green">✔ PASS</span> Heap Allocation Zero-Delta Audit (0 heap drift) <span class="t-dim">[0.98 score, 4ms]</span></div>
+      <div>  <span class="t-dim">└─ Gate 2:</span> <span class="t-green">✔ PASS</span> Packet Reorder & Fragment Fuzz Stress Harness <span class="t-dim">[1.00 score, 28ms]</span></div>
+      <br>
+      <div class="t-dim">─────────────────────────────────────────────────────────────────────────────</div>
+      <div><span class="t-green t-bold">✔ BENCHMARK AUDIT COMPLETE:</span> 2/2 Tasks Verified | <span class="t-bold">Composite Score: 0.97/1.00</span></div>
+      <div><span class="t-dim">Task Verification Report generated:</span> <span class="t-blue">reports/benchmark-audit-2026-08-25.json</span></div>
+    </div>
+  </div>
+
+</body>
+</html>
