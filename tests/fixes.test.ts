@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { parseCompletionBody } from "../src/agent_runner";
+import { AgentEvaluationRunner, parseCompletionBody } from "../src/agent_runner";
 import { EvaluationEngine } from "../src/engine";
 import { BenchmarkTaskSchema, type BenchmarkTask } from "../src/types";
 
@@ -98,4 +98,18 @@ describe("agent response parsing", () => {
     const body = JSON.stringify({ choices: [{ message: { content: "hi" } }], usage: { total_tokens: 3 } });
     expect(parseCompletionBody(body)).toEqual({ rawResponse: "hi", tokensUsed: 3 });
   });
+});
+
+describe("agent request timeout", () => {
+  it("aborts a stalled agent request instead of hanging forever", async () => {
+    const server = Bun.serve({ port: 0, fetch: () => new Promise<Response>(() => {}) });
+    try {
+      const runner = new AgentEvaluationRunner({ baseUrl: `http://localhost:${server.port}`, timeoutMs: 200 });
+      const start = performance.now();
+      await expect(runner.runTaskPrompt("p", [])).rejects.toThrow(/timed out/i);
+      expect(performance.now() - start).toBeLessThan(2000);
+    } finally {
+      server.stop(true);
+    }
+  }, 5000);
 });

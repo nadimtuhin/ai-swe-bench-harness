@@ -2,17 +2,23 @@ export interface AgentBenchmarkOptions {
   model?: string;
   baseUrl?: string;
   apiKey?: string;
+  /** Abort the agent request (including reading the body) after this many ms. Default 120000. */
+  timeoutMs?: number;
 }
+
+const DEFAULT_TIMEOUT_MS = 120_000;
 
 export class AgentEvaluationRunner {
   private readonly baseUrl: string;
   private readonly apiKey: string;
   private readonly model: string;
+  private readonly timeoutMs: number;
 
   constructor(options: AgentBenchmarkOptions = {}) {
     this.baseUrl = options.baseUrl || process.env.NINEROUTER_URL || "http://localhost:20128";
     this.apiKey = options.apiKey || process.env.NINEROUTER_KEY || "sk_9router";
     this.model = options.model || "ag/gemini-3.7-flash-low";
+    this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   }
 
   async runTaskPrompt(prompt: string, contextFiles: { path: string; content: string }[]): Promise<{
@@ -28,30 +34,42 @@ export class AgentEvaluationRunner {
     const userMessage = `${formattedContext}\n\n### Task Objective:\n${prompt}`;
 
     const start = performance.now();
-    const response = await fetch(`${this.baseUrl}/v1/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${this.apiKey}`
-      },
-      body: JSON.stringify({
-        model: this.model,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userMessage }
-        ],
-        temperature: 0.1
-      })
-    });
+    const signal = AbortSignal.timeout(this.timeoutMs);
+    let durationMs: number;
+    let rawText: string;
+    try {
+      const response = await fetch(`${this.baseUrl}/v1/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.apiKey}`
+        },
+        body: JSON.stringify({
+          model: this.model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userMessage }
+          ],
+          temperature: 0.1
+        }),
+        signal
+      });
 
-    const durationMs = Math.round(performance.now() - start);
+      durationMs = Math.round(performance.now() - start);
 
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`9Router request failed (${response.status}): ${errText}`);
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`9Router request failed (${response.status}): ${errText}`);
+      }
+
+      rawText = await response.text();
+    } catch (err) {
+      if (signal.aborted) {
+        throw new Error(`9Router request timed out after ${this.timeoutMs}ms`);
+      }
+      throw err;
     }
 
-    const rawText = await response.text();
     const { rawResponse, tokensUsed } = parseCompletionBody(rawText);
 
     return {
