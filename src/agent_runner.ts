@@ -52,31 +52,7 @@ export class AgentEvaluationRunner {
     }
 
     const rawText = await response.text();
-    let rawResponse = "";
-    let tokensUsed: number | undefined;
-
-    // Handle SSE chunked streaming or standard JSON response from 9Router
-    if (rawText.startsWith("data:")) {
-      const lines = rawText.split("\n");
-      for (const line of lines) {
-        if (line.startsWith("data: ") && !line.includes("[DONE]")) {
-          try {
-            const parsed = JSON.parse(line.slice(6));
-            const deltaContent = parsed.choices?.[0]?.delta?.content || "";
-            rawResponse += deltaContent;
-            if (parsed.usage?.total_tokens) {
-              tokensUsed = parsed.usage.total_tokens;
-            }
-          } catch {
-            // Ignore parse errors on trailing chunks
-          }
-        }
-      }
-    } else {
-      const data = JSON.parse(rawText);
-      rawResponse = data.choices?.[0]?.message?.content || "";
-      tokensUsed = data.usage?.total_tokens;
-    }
+    const { rawResponse, tokensUsed } = parseCompletionBody(rawText);
 
     return {
       rawResponse,
@@ -84,4 +60,40 @@ export class AgentEvaluationRunner {
       tokensUsed
     };
   }
+}
+
+export function parseCompletionBody(rawText: string): { rawResponse: string; tokensUsed?: number } {
+  let rawResponse = "";
+  let tokensUsed: number | undefined;
+
+  const lines = rawText.split(/\r?\n/);
+  const isSse = lines.some((line) => /^data:/.test(line));
+
+  if (!isSse) {
+    const data = JSON.parse(rawText);
+    return {
+      rawResponse: data.choices?.[0]?.message?.content || "",
+      tokensUsed: data.usage?.total_tokens
+    };
+  }
+
+  // Server-sent events: only `data:` fields carry payloads (the space after the colon is optional);
+  // comment (":") and other field lines are ignored. `[DONE]` is only a terminator when it is the whole payload.
+  for (const line of lines) {
+    if (!line.startsWith("data:")) continue;
+    let payload = line.slice(5);
+    if (payload.startsWith(" ")) payload = payload.slice(1);
+    if (payload.trim() === "[DONE]") break;
+    try {
+      const parsed = JSON.parse(payload);
+      rawResponse += parsed.choices?.[0]?.delta?.content || "";
+      if (parsed.usage?.total_tokens) {
+        tokensUsed = parsed.usage.total_tokens;
+      }
+    } catch {
+      // Ignore malformed or partial chunks
+    }
+  }
+
+  return { rawResponse, tokensUsed };
 }

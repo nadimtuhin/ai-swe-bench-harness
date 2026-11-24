@@ -35,16 +35,27 @@ export class EvaluationEngine {
 
     for (const gate of task.verificationGates) {
       const start = performance.now();
-      const res = await executor(gate.command);
+      let res: Awaited<ReturnType<GateExecutor>>;
+      try {
+        res = await executor(gate.command);
+      } catch (err) {
+        // A gate that crashes or times out is a failed gate, not a reason to drop the whole run.
+        const message = err instanceof Error ? err.message : String(err);
+        res = { passed: false, score: 0, stderr: `Gate executor error: ${message}` };
+      }
       const durationMs = performance.now() - start;
+
+      // Scores must be finite and within [0, 1]; anything else is a broken result, scored as 0.
+      const validScore = Number.isFinite(res.score) && res.score >= 0 && res.score <= 1;
+      const score = validScore ? res.score : 0;
 
       const threshold = gate.threshold ?? 1.0;
       const weight = gate.weight ?? 1.0;
-      const passed = res.passed && res.score >= threshold;
+      const passed = res.passed === true && validScore && score >= threshold;
 
       if (!passed) allPassed = false;
 
-      weightedScoreSum += res.score * weight;
+      weightedScoreSum += score * weight;
       totalWeight += weight;
 
       gateResults.push({
@@ -52,13 +63,16 @@ export class EvaluationEngine {
         gateName: gate.name,
         type: gate.type,
         passed,
-        score: res.score,
+        score,
         threshold,
         stdout: res.stdout || "",
-        stderr: res.stderr || "",
+        stderr: validScore ? res.stderr || "" : `${res.stderr ? `${res.stderr}\n` : ""}Invalid gate score: ${res.score}`,
         durationMs: Math.round(durationMs)
       });
     }
+
+    // A task with no gates was never verified, so it cannot pass.
+    if (gateResults.length === 0) allPassed = false;
 
     const compositeScore = totalWeight > 0 ? Number((weightedScoreSum / totalWeight).toFixed(3)) : 0;
 
@@ -71,9 +85,12 @@ export class EvaluationEngine {
       passed: allPassed,
       compositeScore,
       gateResults,
-      auditNotes: allPassed
-        ? `Task verified against ${task.verificationGates.length} deterministic gates.`
-        : `Task failed verification in ${gateResults.filter((g) => !g.passed).length} gate(s).`
+      auditNotes:
+        gateResults.length === 0
+          ? "Task has no verification gates; nothing was verified."
+          : allPassed
+            ? `Task verified against ${task.verificationGates.length} deterministic gates.`
+            : `Task failed verification in ${gateResults.filter((g) => !g.passed).length} gate(s).`
     };
   }
 
