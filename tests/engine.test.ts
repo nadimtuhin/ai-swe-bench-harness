@@ -4,6 +4,20 @@ import { EvaluationEngine } from "../src/engine";
 import { benchmarkTasks } from "../src/tasks";
 import { BenchmarkTaskSchema, type BenchmarkTask } from "../src/types";
 
+const ROUTER_URL = "http://localhost:20128";
+
+// Skip the live 9Router test only when the router is not running (e.g. in CI).
+async function isRouterReachable(): Promise<boolean> {
+  try {
+    await fetch(ROUTER_URL, { signal: AbortSignal.timeout(1000) });
+    return true;
+  } catch {
+    return false;
+  }
+}
+const routerReachable = await isRouterReachable();
+if (!routerReachable) console.warn(`9Router not reachable at ${ROUTER_URL}; skipping live agent test.`);
+
 describe("Benchmark Harness Evaluation Engine", () => {
   const sampleTask: BenchmarkTask = BenchmarkTaskSchema.parse({
     taskId: "TEST-REF-001",
@@ -68,22 +82,18 @@ describe("Benchmark Harness Evaluation Engine", () => {
     expect(summary.overallScore).toBe(1.0);
   });
 
-  it("interacts with local 9Router via ag/gemini-3.7-flash-low", async () => {
+  it.skipIf(!routerReachable)("interacts with local 9Router via ag/gemini-3.7-flash-low", async () => {
     const runner = new AgentEvaluationRunner({
       model: "ag/gemini-3.7-flash-low",
-      baseUrl: "http://localhost:20128",
+      baseUrl: ROUTER_URL,
       apiKey: "sk_9router"
     });
 
-    try {
-      const res = await runner.runTaskPrompt("Explain 1 critical failure mode in Raft log compaction in 1 sentence.", [
-        { path: "src/raft.ts", content: "// Raft leader state" }
-      ]);
-      expect(res.rawResponse.length).toBeGreaterThan(10);
-      expect(res.durationMs).toBeGreaterThan(0);
-    } catch (e: any) {
-      // Allow fallback if local 9router is offline during CI
-      console.warn("9Router local ping skipped:", e.message);
-    }
+    // No try/catch: once the router is reachable, request errors and assertion failures must fail the test.
+    const res = await runner.runTaskPrompt("Explain 1 critical failure mode in Raft log compaction in 1 sentence.", [
+      { path: "src/raft.ts", content: "// Raft leader state" }
+    ]);
+    expect(res.rawResponse.length).toBeGreaterThan(10);
+    expect(res.durationMs).toBeGreaterThanOrEqual(0); // rounded to whole ms; a fast local reply can be 0
   });
 });
